@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Dynamic Form Example</title>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background: #f4f4f4;
+        }
+        #dynamicForm {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin-left: 0;
+        }
+        #apiResponseContainer {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin-top: 20px; /* Add some space between the form and the response area */
+        }
+        #apiResponse {
+            white-space: pre-wrap; /* Ensures that whitespace and newlines are preserved */
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type=text], 
+        select, 
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background: #5cb85c;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #4cae4c;
+        }
+        .hidden {
+            display: none;
+        }
+      button[type=submit] {
+          margin-top: 20px; /* Adjust the value as needed */
+      } 
+      .loader {
+          border: 5px solid #f3f3f3;
+          border-top: 5px solid #3498db;
+          border-radius: 50%;
+          width: 50px;
+          height: 50px;
+          animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+      }
+      
+    </style>
+</head>
+
+
+<head>
+    <meta charset="utf-8">
+    <title>Dynamic Form Example</title>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+</head>
+<body>
+    <form id="dynamicForm">
+        <div id="spinner" class="hidden">
+            <div class="loader"></div>
+        </div>
+        <label for="queryType">Make your choice:</label>
+      <select name="queryType" id="queryType">
+          <option value="addStamp">Add a stamp</option>
+          <option value="listAllstamps">List all stamps</option>
+      </select>
+
+        <div id="queryFields" class="hidden">
+            <label for="stampname">Stamp Name:</label>
+            <input type="text" id="stampname" name="stampname">
+            <label for="stampvalue">Stamp Value:</label>
+            <input type="text" id="stampvalue" name="stampvalue">
+        </div>
+
+        <div id="listAllstamps" class="hidden">
+            
+        </div>
+        
+        <button type="submit">Submit</button>
+    </form>
+    <script>
+        $(document).ready(function(){
+            var queryTypeSelect = $('#queryType');
+            var queryFields = $('#queryFields');
+
+            function showRelevantFields() {
+              var selectedType = queryTypeSelect.val();
+              queryFields.addClass('hidden');
+              
+              if (selectedType === 'addStamp') {
+                  queryFields.removeClass('hidden');
+              }  
+          }
+
+            queryTypeSelect.change(showRelevantFields);
+            showRelevantFields(); // Call on document ready to show the correct fields
+        });
+      // Add this JavaScript code snippet at the end of your existing <script> tag
+
+function displayStamps(stamps) {
+    var html = '<ul>';
+    stamps.forEach(function(stamp) {
+        html += '<li>' + 'Name: ' + stamp.stampname + ', Value: ' + stamp.stampvalue + '</li>';
+    });
+    html += '</ul>';
+    return html;
+      }
+      
+function performAPIRequest(queryType, queryParams) {
+  var apiURL = "https://FrontBackDB--antoinelarmanja.repl.co/query";
+  $.get(apiURL, queryParams, function(response) {
+
+
+    $('#apiResponse').html(`<pre>${JSON.stringify(response, null, 2)}</pre>`);
+  }).fail(function() {
+  
+    $('#apiResponse').text("Error: Could not retrieve data.");
+  });
+}
+
+      $('#dynamicForm').on('submit', function(e) {
+        e.preventDefault();
+        var queryType = $('#queryType').val();
+         $('#spinner').removeClass('hidden');
+         $('#apiResponseContainer').addClass('hidden');
+        // Only process if 'query' is selected
+        
+        if (queryType === 'addStamp') {
+          // Retrieve field values from the form
+          var queryParams = {
+              stampname: $('#stampname').val(), // Ensure this ID matches your form input for codebase
+              stampvalue: $('#stampvalue').val() // Ensure this ID matches your form input for question
+          };
+
+          // Make sure this URL matches your API endpoint
+          var apiURL = "/stamps";
+          // Perform the API request with the queryParams object
+          $.get(apiURL, queryParams, function(response) {
+           $('#spinner').addClass('hidden');
+            // Show formatted JSON response in #apiResponse element
+            // Use .text() method and replace \n with <br> for formatting
+            $('#apiResponse').html(response);
+            $('#apiResponseContainer').removeClass('hidden');
+          }).fail(function() {
+            // If the API call fails, show an error message
+            $('#spinner').addClass('hidden');
+            $('#apiResponse').text("Error: Could not retrieve data.");
+          });
+        } else if (queryType === 'listAllstamps') {
+          // Show the spinner
+          $('#spinner').removeClass('hidden');
+          $('#apiResponseContainer').addClass('hidden');
+          // Retrieve field values from the form
+          
+          var apiURL = "/stamplist";
+          $.ajax({
+            url: apiURL,
+            type: "GET", // Or "POST" if your server is expecting a POST request
+            
+            success: function(response) {
+              $('#spinner').addClass('hidden');
+              // Present the formatted response
+              //let responseText = typeof response === 'string' ? response : JSON.stringify(response);
+              var formattedResponse = displayStamps(response); // Call the new function to format the response
+              $('#apiResponse').html(formattedResponse);
+              $('#apiResponseContainer').removeClass('hidden');
+            },
+            error: function(xhr, status, error) {
+              $('#spinner').addClass('hidden');
+              $('#apiResponse').text("Error: Could not retrieve data. " + error);
+            }
+          });
+        }
+      });
+
+
+    </script>
+  <div id="apiResponseContainer" class="response-container hidden">
+      <div id="apiResponse"></div>
+  </div>
+   
+</body>
+</html>
